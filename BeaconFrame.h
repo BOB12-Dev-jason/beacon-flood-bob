@@ -3,8 +3,6 @@
 
 #include <stdint.h>
 
-
-
 struct ieee80211_radiotapMoreHeader {
     uint8_t flags;
     uint8_t rate;
@@ -40,13 +38,30 @@ struct ieee80211_FixFrameBody {
     uint16_t cap_info;          // capability information. 2 byte
     
     // composed with essential tags only for beacon flooding. real tag parameters are very various and variable.
-    TaggedParameter ssid_tag;
-    TaggedParameter supp_rate_tag;
-    TaggedParameter channel_tag;
+    TaggedParameter* ssid_tag;
+    TaggedParameter* supp_rate_tag;
+    TaggedParameter* channel_tag;
 };
 
 
+struct BeaconFrame {
+    uint8_t radiotap[8];
+    // Header
+    uint16_t frame_control;
+    uint16_t duration;
+    uint8_t addr1[6];
+    uint8_t addr2[6];
+    uint8_t addr3[6];
+    uint16_t seq_control;
 
+    // body
+    uint64_t timestamp;         // timestamp. 8 bytes
+    uint16_t beacon_interval;   // beacon interval. 2 byte
+    uint16_t cap_info;          // capability information. 2 byte
+    uint8_t ssid_tag_num;
+    uint8_t ssid_tag_len;
+    // unsigned char* ssid;
+}__attribute__((__packed__));
 
 
 #endif
