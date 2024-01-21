@@ -3,27 +3,12 @@
 #include <string.h> // for memcpy
 #include <stdlib.h> // for calloc
 #include <time.h> // random
-#include <unistd.h>
+#include <unistd.h> // for sleep
 
 #include "radiotap.h"
 #include "BeaconFrame.h"
 
-typedef struct ieee80211_FixMacHeader MacHdr;
-typedef struct ieee80211_FixFrameBody FrameBody;
-typedef struct ieee80211_TaggedParameter TagParameter;
 typedef struct BeaconFrame BeaconFrame;
-
-typedef struct {
-    uint8_t header[8];
-} RadiotapHdr;
-
-typedef struct {
-    RadiotapHdr r_hdr;
-    MacHdr m_hdr;
-    FrameBody* body;
-} __attribute__((__packed__)) FakeBeaconFrame;
-
-
 
 int beacon_flood(const char* interface, const char* list_file) {
 
@@ -77,7 +62,6 @@ int beacon_flood(const char* interface, const char* list_file) {
     struct pcap_pkthdr* header;
 	const unsigned char* packet; // const u_char* packet;
 
-    RadiotapHdr radio_hdr = {{0,}};
     uint8_t radio_t[8] = {0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00};
     uint8_t da[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
     uint8_t sa[6] = {0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa};
@@ -105,11 +89,6 @@ int beacon_flood(const char* interface, const char* list_file) {
     frame->cap_info = htons(0x0c11); // automatic power save delivery, short slot time, ESS capabilities bits 1
 
     frame->ssid_tag_num = (uint8_t)0x00;
-    // frame->ssid_tag_len = ssid_len;
-    // puts("before strncpy");
-    // memcpy((unsigned char*)frame + sizeof(BeaconFrame), fake_ssid, ssid_len);
-    // // frame->ssid[ssid_len] = '\0';
-    // puts("after strncpy");
     
     int ssid_len = 0;
     while(1) {
