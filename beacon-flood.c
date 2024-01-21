@@ -39,11 +39,30 @@ int beacon_flood(const char* interface, const char* list_file) {
         return -1;
     }
 
-    char ssid[512];
-    while (fgets(ssid, sizeof(ssid), ssid_list_file) != NULL) {
-        printf("ssid - %s\n", ssid);
+    const char* ssid_list[10]; // 10 fake ssid
+    char tmp[256];
+    int ssid_num = 0;
+    // read ssid while under 10
+    int i=0;
+    while (fgets(tmp, sizeof(tmp), ssid_list_file) != NULL) { // fgets() inputs '\0' auto.
+        if(i>=10) break;
+
+        size_t len = strlen(tmp);
+        if (len > 0 && tmp[len - 1] == '\n') {
+            tmp[len - 1] = '\0';
+        }
+
+        ssid_list[i] = calloc(256, 1);
+        printf("ssid %d - %s\n",i, tmp);
+
+        if(strlen(tmp) >= 20) continue; // maximum ssid length is 20
+
+        strncpy(ssid_list[i], tmp, strlen(tmp));
+        i++;
+        ssid_num++;
     }
 
+    printf("ssid_num: %d\n", ssid_num);
     fclose(ssid_list_file);
 
 
@@ -62,11 +81,11 @@ int beacon_flood(const char* interface, const char* list_file) {
     uint8_t radio_t[8] = {0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00};
     uint8_t da[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
     uint8_t sa[6] = {0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa};
-    char* fake_ssid = "hdxian_test";
-    int ssid_len = strlen(fake_ssid);
-    printf("ssid_len: %d\n", ssid_len);
+    // char* fake_ssid = "hdxian_test";
+    // int ssid_len = strlen(fake_ssid);
+    // printf("ssid_len: %d\n", ssid_len);
 
-    BeaconFrame* frame = calloc(1, sizeof(BeaconFrame) + ssid_len + 1);
+    BeaconFrame* frame = calloc(1, sizeof(BeaconFrame) + 20);
     if(frame == NULL) {
         puts("faild to alloc *frame");
         return -1;
@@ -86,26 +105,34 @@ int beacon_flood(const char* interface, const char* list_file) {
     frame->cap_info = htons(0x0c11); // automatic power save delivery, short slot time, ESS capabilities bits 1
 
     frame->ssid_tag_num = (uint8_t)0x00;
-    frame->ssid_tag_len = ssid_len;
-    puts("before strncpy");
-    memcpy((unsigned char*)frame + sizeof(BeaconFrame), fake_ssid, ssid_len);
-    // frame->ssid[ssid_len] = '\0';
-    puts("after strncpy");
+    // frame->ssid_tag_len = ssid_len;
+    // puts("before strncpy");
+    // memcpy((unsigned char*)frame + sizeof(BeaconFrame), fake_ssid, ssid_len);
+    // // frame->ssid[ssid_len] = '\0';
+    // puts("after strncpy");
     
+    int ssid_len = 0;
     while(1) {
-        pcap_sendpacket(handle, (unsigned char*)frame, sizeof(BeaconFrame) + ssid_len);
+
+        for(int i=0; i<ssid_num; i++) {
+            // printf("ssid: %s\n", ssid_list[i]);
+            ssid_len = strlen(ssid_list[i]);
+            frame->ssid_tag_len = ssid_len;
+            // printf("ssid tag len: %d\n", frame->ssid_tag_len);
+            memcpy((unsigned char*)frame + sizeof(BeaconFrame), ssid_list[i], ssid_len); // ssid는 개행문자가 없고, 마지막에 널 문자를 넣어줘야 함.
+            // printf("ssid2: %s\n", (unsigned char*)frame + sizeof(BeaconFrame));
+            pcap_sendpacket(handle, (unsigned char*)frame, sizeof(BeaconFrame) + ssid_len);
+            memset((unsigned char*)frame + sizeof(BeaconFrame), 0 ,ssid_len);
+        }
         puts("send beacon frame");
         sleep(1);
     }
-    // printf("for loop\n");
-    // for(int i=0; i<10; i++) {
-    //     printf("loop %d\n", i);
-    //     // unsigned char* packet = &fake_frame;
-    //     pcap_sendpacket(handle, (unsigned char*)frame, sizeof(BeaconFrame) + ssid_len);
-    // }
 
     printf("free\n");
     free(frame);
+
+    for(int i=0; i<ssid_num; i++)
+        free(ssid_list[i]);
 
     printf("return\n");
     return 0;
