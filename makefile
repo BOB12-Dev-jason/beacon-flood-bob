@@ -2,7 +2,7 @@ LDLIBS += -lpcap
 
 all: beacon-flood
 
-airodump: *.c
+beacon-flood: *.c
 
 clean:
 	rm -f beacon-flood *.o

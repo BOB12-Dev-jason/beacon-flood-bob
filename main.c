@@ -1,5 +1,7 @@
 #include <stdio.h>
 
+#include "beacon-flood.h"
+
 void usage();
 
 
@@ -13,7 +15,7 @@ int main(int argc, char* argv[]) {
     int res;
     const char* interface = argv[1];
     const char* filename = argv[2];
-    // res = beacon_flood(interface, filename);
+    res = beacon_flood(interface, filename);
 
     return 0;
 
